@@ -11,12 +11,26 @@ const planeErrorLogger = createLogger('PlaneError', 'plain');
 const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 let lobbiesMult: string[] | undefined = [];
 let betCount: number = 0;
-
+let totalBetAmount: number = 0;
+let totalCashOut: number = 0;
 export function getLobbiesMult() { return lobbiesMult };
-export function getBetCount() { return betCount };
+export function getBetCount() { return { betCount, totalBetAmount } };
+export function setBetCount(btCount: number, ttlBtAmt: number) {
+    betCount = btCount;
+    totalBetAmount = ttlBtAmt;
+}
+
+export function gettotalCashOut() { return totalCashOut };
+export function settotalCashOut(ttlCashout: number) {
+    totalCashOut = ttlCashout;
+}
 function getRandomBetCount() {
     betCount = Math.floor(Math.random() * (3000 - 600 + 1)) + 600;
-    return betCount
+    totalBetAmount = Math.floor(Math.random() * (50000 - 30000 + 1)) + 30000;
+    totalCashOut = Math.floor(Math.random() * (200000 - 100000 + 1)) + 100000;
+    console.log({ betCount, totalBetAmount, totalCashOut }, "lobby")
+    return { betCount, totalBetAmount }
+
 }
 
 const checkPlaneHealth = (): NodeJS.Timeout => setInterval(() => {

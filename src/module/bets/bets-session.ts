@@ -10,6 +10,7 @@ import { logEventAndEmitResponse } from '../../utilities/helper-function';
 import { prepareDataForWebhook, postDataToSourceForBet } from '../../utilities/common-function';
 import { insertBets, insertCashout, insertSettleBet } from './bets-db';
 import { sendToQueue } from '../../utilities/amqp';
+import { getBetCount, gettotalCashOut, setBetCount, settotalCashOut } from '../lobbies/lobby-event';
 
 const logger: Logger = createLogger('Bets', 'jsonl');
 const cashoutLogger: Logger = createLogger('Cashout', 'jsonl');
@@ -116,16 +117,24 @@ export const placeBet = async (
             atCo,
             socket_id: socket.id,
             game_id
-        };
+        }
 
         if (bet_amount > Number(balance)) {
             return logEventAndEmitResponse(socket, rawData, `Insufficient Balance ${bet_id}`, 'bet');
         }
 
         const webhookData = await prepareDataForWebhook({ ...betObj, bet_amount, lobby_id, user_id: userId, operator_id: operatorId }, "DEBIT", socket);
+
         if (!webhookData) {
             return logEventAndEmitResponse(socket, rawData, `Something went wrong ${bet_id}`, 'bet');
         }
+        let { betCount, totalBetAmount } = getBetCount()
+        betCount++
+        totalBetAmount += Number(btAmt)
+        setBetCount(betCount, totalBetAmount)
+        console.log({ betCount, totalBetAmount }, "placebet")
+        io.emit("betCount", { betCount, totalBetAmount })
+
 
         betObj.webhookData = webhookData;
 
@@ -453,6 +462,13 @@ export const cashOut = async (
         io.to(betObj.socket_id).emit('singleCashout', user_settlements_for_event);
 
         const cleanSettlementObj = cleanData(betObj as Settlement, "cashout");
+
+
+        let currentCashOut = gettotalCashOut()
+        currentCashOut += Number(betObj.final_amount)
+        settotalCashOut(currentCashOut)
+        console.log({ currentCashOut: Number(currentCashOut).toFixed(2) }, "cashout")
+        io.emit("totalCashOut", Number(currentCashOut).toFixed(2));
         io.emit("cashout", cleanSettlementObj);
 
     } catch (error) {
@@ -568,12 +584,12 @@ export const disConnect = async (io: Server, socket: Socket): Promise<void> => {
             logger.info(`Bets cancelled due to disconnect during betting phase for socket ${socket.id}: ${betsToCancelOnDisconnect.join(', ')}`);
         } else if (lobbyData.status == 0 && lobbyData.isWebhook) {
             await Promise.all(userActiveBets.map(async bet => {
-                setTimeout(async() => await cashOut(io, socket, [1.00, bet.atCo, 0, ...bet.bet_id.split(':')]), 100);
+                setTimeout(async () => await cashOut(io, socket, [1.00, bet.atCo, 0, ...bet.bet_id.split(':')]), 100);
             }));
         }
     };
     reducePlayerCount();
-    setTimeout(async() => await deleteCache(`PL:${socket.id}`), 200);
+    setTimeout(async () => await deleteCache(`PL:${socket.id}`), 200);
 };
 
 export const getCurrentLobby = (): LobbyData => lobbyData;
