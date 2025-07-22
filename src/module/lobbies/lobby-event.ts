@@ -64,6 +64,7 @@ const initLobby = async (io: Server): Promise<void> => {
     let recurLobbyData: LobbyData = { lobbyId, status: 0, isWebhook: 0 };
     setCurrentLobby(recurLobbyData);
     getRandomBetCount();
+
     io.emit('betStats', {
         betCount: matchCountStats.betCount,
         totalBetAmount: matchCountStats.totalBetAmount,
@@ -122,15 +123,19 @@ const initLobby = async (io: Server): Promise<void> => {
     recurLobbyData.status = 2;
     setCurrentLobby(recurLobbyData);
 
-    io.emit('betCount', { betCount: 0, totalBetAmount: 0 });
-    io.emit("totalCashOut", 0.00);
     for (let y = 0; y < end_delay; y++) {
+        if (y == 2) {
+            resetCountStats();
+            io.emit("betStats", matchCountStats);
+        }
         if (y === 3) {
             await settleBet(io, odds);
         }
         io.emit("plane", `${lobbyId}:${max_mult.toFixed(2)}:2`);
         await sleep(1000);
-    }
+    };
+
+
 
     odds = {};
 
@@ -147,8 +152,7 @@ const initLobby = async (io: Server): Promise<void> => {
     if (lobbiesMult) lobbiesMult = [Number(history.max_mult).toFixed(2), ...lobbiesMult];
     logger.info(JSON.stringify(history));
     await insertLobbies(history);
-    resetCountStats();
-    io.emit("betStats", matchCountStats);
+
     return initLobby(io);
 };
 

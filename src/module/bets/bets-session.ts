@@ -128,6 +128,7 @@ export const placeBet = async (
         if (!webhookData) {
             return logEventAndEmitResponse(socket, rawData, `Something went wrong ${bet_id}`, 'bet');
         }
+
         matchCountStats.betCount++;
         matchCountStats.totalBetAmount += bet_amount;
         io.emit("betStats", { betCount: matchCountStats.betCount, totalBetAmount: matchCountStats.totalBetAmount, totalCashout: 0 });
