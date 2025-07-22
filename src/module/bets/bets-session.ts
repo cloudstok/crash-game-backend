@@ -10,7 +10,7 @@ import { logEventAndEmitResponse } from '../../utilities/helper-function';
 import { prepareDataForWebhook, postDataToSourceForBet } from '../../utilities/common-function';
 import { insertBets, insertCashout, insertSettleBet } from './bets-db';
 import { sendToQueue } from '../../utilities/amqp';
-import { getBetCount, gettotalCashOut, setBetCount, settotalCashOut } from '../lobbies/lobby-event';
+import { matchCountStats } from '../lobbies/lobby-event';
 
 const logger: Logger = createLogger('Bets', 'jsonl');
 const cashoutLogger: Logger = createLogger('Cashout', 'jsonl');
@@ -128,12 +128,9 @@ export const placeBet = async (
         if (!webhookData) {
             return logEventAndEmitResponse(socket, rawData, `Something went wrong ${bet_id}`, 'bet');
         }
-        let { betCount, totalBetAmount } = getBetCount()
-        betCount++
-        totalBetAmount += Number(btAmt)
-        setBetCount(betCount, totalBetAmount)
-        console.log({ betCount, totalBetAmount }, "placebet")
-        io.emit("betCount", { betCount, totalBetAmount })
+        matchCountStats.betCount++;
+        matchCountStats.totalBetAmount += bet_amount;
+        io.emit("betStats", { betCount: matchCountStats.betCount, totalBetAmount: matchCountStats.totalBetAmount, totalCashout: 0 });
 
 
         betObj.webhookData = webhookData;
@@ -274,6 +271,10 @@ const handleFulfilledResult = async (value: FulfilledBetResult, io: Server): Pro
         } else {
             io.to(socket_id).emit("bet", { bet_id: bet_id, action: "cancel" });
             io.to(socket_id).emit("betError", `Bet Cancelled By Upstream ${bet_id}`);
+            matchCountStats.betCount--;
+            matchCountStats.totalBetAmount -= Number(originalBet.bet_amount) || 0;
+            io.emit("betStats", { betCount: matchCountStats.betCount, totalBetAmount: matchCountStats.totalBetAmount, totalCashout: 0 });
+
             await removeBetObjAndEmit(bet_id, betParts[2], socket_id, io);
         }
     } catch (err) {
@@ -358,6 +359,9 @@ export const cancelBet = async (io: Server, socket: Socket, [...betIdParts]: Can
         cancelBetsLogger.info(JSON.stringify({ req: canObj, res: betObj }));
         bets = bets.filter(e => e.bet_id !== bet_id);
         io.emit("bet", { bet_id: bet_id, action: "cancel" });
+        matchCountStats.betCount--;
+        matchCountStats.totalBetAmount -= bet_amount;
+        io.emit("betStats", { betCount: matchCountStats.betCount, totalBetAmount: matchCountStats.totalBetAmount, totalCashout: 0 });
 
     } catch (error) {
         console.error('Cancel bet error:', error);
@@ -464,11 +468,8 @@ export const cashOut = async (
         const cleanSettlementObj = cleanData(betObj as Settlement, "cashout");
 
 
-        let currentCashOut = gettotalCashOut()
-        currentCashOut += Number(betObj.final_amount)
-        settotalCashOut(currentCashOut)
-        console.log({ currentCashOut: Number(currentCashOut).toFixed(2) }, "cashout")
-        io.emit("totalCashOut", Number(currentCashOut).toFixed(2));
+        matchCountStats.totalCashout += parseFloat(betObj.final_amount);
+        io.emit("betStats", matchCountStats);
         io.emit("cashout", cleanSettlementObj);
 
     } catch (error) {

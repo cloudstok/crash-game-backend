@@ -10,28 +10,25 @@ const planeErrorLogger = createLogger('PlaneError', 'plain');
 
 const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 let lobbiesMult: string[] | undefined = [];
-let betCount: number = 0;
-let totalBetAmount: number = 0;
-let totalCashOut: number = 0;
 export function getLobbiesMult() { return lobbiesMult };
-export function getBetCount() { return { betCount, totalBetAmount } };
-console.log({ betCount, totalBetAmount, totalCashOut })
-export function setBetCount(btCount: number, ttlBtAmt: number) {
-    betCount = btCount;
-    totalBetAmount = ttlBtAmt;
-}
 
-export function gettotalCashOut() { return totalCashOut };
-export function settotalCashOut(ttlCashout: number) {
-    totalCashOut = ttlCashout;
-}
+export const matchCountStats: { betCount: number, totalBetAmount: number, totalCashout: number } = {
+    betCount: 0,
+    totalBetAmount: 0,
+    totalCashout: 0
+};
+
 function getRandomBetCount() {
-    betCount = Math.floor(Math.random() * (3000 - 600 + 1)) + 600;
-    totalBetAmount = Math.floor(Math.random() * (50000 - 30000 + 1)) + 30000;
-    totalCashOut = Math.floor(Math.random() * (200000 - 100000 + 1)) + 100000;
-    return { betCount, totalBetAmount }
-
+    matchCountStats.betCount = Math.floor(Math.random() * (3000 - 600 + 1)) + 600;
+    matchCountStats.totalBetAmount = Math.floor(Math.random() * (50000 - 30000 + 1)) + 30000;
+    matchCountStats.totalCashout = Math.floor(Math.random() * (200000 - 100000 + 1)) + 100000;
 }
+
+function resetCountStats() {
+    matchCountStats.betCount = 0;
+    matchCountStats.totalBetAmount = 0;
+    matchCountStats.totalCashout = 0;
+};
 
 const checkPlaneHealth = (): NodeJS.Timeout => setInterval(() => {
     const { lobbyId, status } = getCurrentLobby() as LobbyData;
@@ -66,8 +63,12 @@ const initLobby = async (io: Server): Promise<void> => {
     const lobbyId = Date.now();
     let recurLobbyData: LobbyData = { lobbyId, status: 0, isWebhook: 0 };
     setCurrentLobby(recurLobbyData);
-
-    io.emit('betCount', getRandomBetCount());
+    getRandomBetCount();
+    io.emit('betStats', {
+        betCount: matchCountStats.betCount,
+        totalBetAmount: matchCountStats.totalBetAmount,
+        totalCashout: 0
+    });
     io.emit('maxOdds', lobbiesMult);
     odds.lobbyId = lobbyId;
     odds.start_time = Date.now();
@@ -122,6 +123,7 @@ const initLobby = async (io: Server): Promise<void> => {
     setCurrentLobby(recurLobbyData);
 
     io.emit('betCount', { betCount: 0, totalBetAmount: 0 });
+    io.emit("totalCashOut", 0.00);
     for (let y = 0; y < end_delay; y++) {
         if (y === 3) {
             await settleBet(io, odds);
@@ -145,10 +147,8 @@ const initLobby = async (io: Server): Promise<void> => {
     if (lobbiesMult) lobbiesMult = [Number(history.max_mult).toFixed(2), ...lobbiesMult];
     logger.info(JSON.stringify(history));
     await insertLobbies(history);
-    totalBetAmount = 0;
-    betCount = 0;
-
-
+    resetCountStats();
+    io.emit("betStats", matchCountStats);
     return initLobby(io);
 };
 
