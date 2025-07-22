@@ -15,6 +15,7 @@ let totalBetAmount: number = 0;
 let totalCashOut: number = 0;
 export function getLobbiesMult() { return lobbiesMult };
 export function getBetCount() { return { betCount, totalBetAmount } };
+console.log({ betCount, totalBetAmount, totalCashOut })
 export function setBetCount(btCount: number, ttlBtAmt: number) {
     betCount = btCount;
     totalBetAmount = ttlBtAmt;
@@ -28,7 +29,6 @@ function getRandomBetCount() {
     betCount = Math.floor(Math.random() * (3000 - 600 + 1)) + 600;
     totalBetAmount = Math.floor(Math.random() * (50000 - 30000 + 1)) + 30000;
     totalCashOut = Math.floor(Math.random() * (200000 - 100000 + 1)) + 100000;
-    console.log({ betCount, totalBetAmount, totalCashOut }, "lobby")
     return { betCount, totalBetAmount }
 
 }
@@ -121,6 +121,7 @@ const initLobby = async (io: Server): Promise<void> => {
     recurLobbyData.status = 2;
     setCurrentLobby(recurLobbyData);
 
+    io.emit('betCount', { betCount: 0, totalBetAmount: 0 });
     for (let y = 0; y < end_delay; y++) {
         if (y === 3) {
             await settleBet(io, odds);
@@ -144,6 +145,9 @@ const initLobby = async (io: Server): Promise<void> => {
     if (lobbiesMult) lobbiesMult = [Number(history.max_mult).toFixed(2), ...lobbiesMult];
     logger.info(JSON.stringify(history));
     await insertLobbies(history);
+    totalBetAmount = 0;
+    betCount = 0;
+
 
     return initLobby(io);
 };
