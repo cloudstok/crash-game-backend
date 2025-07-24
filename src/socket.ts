@@ -5,8 +5,7 @@ import { messageRouter } from './router/message-router';
 import { setCache } from './utilities/redis-connection';
 import { getLobbiesMult, matchCountStats } from './module/lobbies/lobby-event';
 import { currentRoundBets, getCurrentLobby } from './module/bets/bets-session';
-import { LobbyData } from './interfaces';
-let lobbyData: LobbyData = {} as LobbyData
+import { lobbyData } from './module/bets/bets-session';
 
 export const initSocket = (io: Server): void => {
   eventRouter(io);
@@ -41,9 +40,7 @@ export const initSocket = (io: Server): void => {
     await setCache(`PL:${socket.id}`, JSON.stringify({ ...userData, socketId: socket.id }), 3600);
 
     messageRouter(io, socket);
-    // socket.emit('betCount', getBetCount());
-
-    io.emit("betStats", { betCount: matchCountStats.betCount, totalBetAmount: matchCountStats.totalBetAmount, totalCashout: lobbyData.status == 2 ? matchCountStats.totalCashout : 0 });
+    io.emit("betStats", { betCount: matchCountStats.betCount, totalBetAmount: matchCountStats.totalBetAmount, totalCashout: lobbyData.status == 1 ? matchCountStats.totalCashout : 0 });
     socket.emit('maxOdds', getLobbiesMult());
     currentRoundBets(socket);
 

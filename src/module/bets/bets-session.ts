@@ -23,7 +23,7 @@ const failedcancelledBetLogger: Logger = createLogger('failedCancelledBets', 'js
 const userLocks: Map<string, Promise<void>> = new Map();
 let bets: Bet[] = [];
 let settlements: Settlement[] = [];
-let lobbyData: LobbyData = {} as LobbyData
+export let lobbyData: LobbyData = {} as LobbyData
 
 export const initBet = async (io: Server, socket: Socket, data: string[]): Promise<void> => {
     const [message, ...restData] = data;
