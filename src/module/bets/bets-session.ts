@@ -414,7 +414,9 @@ export const cashOut = async (
 
 
         let effective_max_mult: number;
-        if ((betObj.atCo) && atCo && betObj.atCo === atCo && atCo <= Number(lobbyData.ongoingMaxMult)) {
+        if (max_mult && atCo && max_mult > atCo) {
+            effective_max_mult = atCo
+        } else if ((betObj.atCo) && atCo && betObj.atCo === atCo && atCo <= Number(lobbyData.ongoingMaxMult)) {
             effective_max_mult = betObj.atCo;
         } else {
             effective_max_mult = max_mult;
