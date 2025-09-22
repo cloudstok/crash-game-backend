@@ -1,13 +1,13 @@
 import { Server, Socket } from 'socket.io';
 import { initBet, disConnect, currentRoundBets } from '../module/bets/bets-session';
-import {createLogger} from '../utilities/logger';
+import { createLogger } from '../utilities/logger';
 
 const logger = createLogger('Event');
 
 export const messageRouter = async (io: Server, socket: Socket): Promise<void> => {
     socket.on('message', (data: string) => {
         logger.info(data);
-        
+
         const event = data.split(':');
         const eventType = event[0];
         const eventData = event.slice(1);
