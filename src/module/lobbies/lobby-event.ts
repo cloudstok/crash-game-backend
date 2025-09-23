@@ -172,9 +172,13 @@ function generateOdds(): GeneratedOdds {
     const win_per = Math.random() * 99.00;
     let mult = RTP / (win_per * 100);
 
-    if (mult < 1.01) {
+    if (mult < 1.01 || Math.random() < 0.02) {
         mult = 1.00;
-    } else if (mult > 20) {
+    }
+    else if (mult < 2 && Math.random() < 0.5) {
+        mult = 1.00 + (Math.random()) / 2;
+    }
+    else if (mult > 20) {
         const highMultRng = Math.random();
         if (highMultRng < 0.5) mult = generateOdds().mult;
     } else if (mult > 100000) {
