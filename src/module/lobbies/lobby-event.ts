@@ -169,21 +169,22 @@ export const getMaxMultOdds = async (): Promise<string[] | undefined> => {
 const RTP = 9700;
 
 function generateOdds(): GeneratedOdds {
-    const win_per = Math.random() * 99.00;
-    let mult = RTP / (win_per * 100);
+    const win_per = (Math.random() * 99.00);
+    let mult = (RTP) / (win_per * 100);
 
-    if (mult < 1.01 || Math.random() < 0.02) {
-        mult = 1.00;
-    }
-    else if (mult < 2 && Math.random() < 0.5) {
-        mult = 1.00 + (Math.random()) / 2;
+    if (mult >= 2 && mult <= 4 && Math.random() < 0.7) {
+        mult = generateOdds().mult;
     }
     else if (mult > 20) {
-        const highMultRng = Math.random();
+        const highMultRng = (Math.random());
         if (highMultRng < 0.5) mult = generateOdds().mult;
-    } else if (mult > 100000) {
+    }
+    else if (mult < 1.01 || Math.random() < 0.02) {
+        mult = 1.00
+    }
+    else if (mult > 100000) {
         mult = 100000;
     }
 
-    return { win_per, mult };
-}
+    return ({ win_per, mult });
+};
