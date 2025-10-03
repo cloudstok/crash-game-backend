@@ -5,6 +5,7 @@ import { insertLobbies } from "./lobbies-db";
 import { createLogger } from "../../utilities/logger";
 import { read } from "../../utilities/db-connection";
 import { GeneratedOdds, LobbyData, LobbyHistory, OddsData } from "../../types";
+import { getMult } from "../game-logic";
 const logger = createLogger('Plane', 'jsonl');
 const planeErrorLogger = createLogger('PlaneError', 'plain');
 
@@ -79,7 +80,7 @@ const initLobby = async (io: Server): Promise<void> => {
     const end_delay = 6;
 
     odds.total_players = await getPlayerCount();
-    const max_mult = generateOdds().mult;
+    const max_mult = getMult();
 
     for (let x = 0; x < start_delay; x++) {
         io.emit("plane", `${lobbyId}:${inc}:0`);
